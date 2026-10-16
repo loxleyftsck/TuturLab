@@ -1,0 +1,51 @@
+# Python runtime and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Downloaded model weights and runtime data
+models/
+cache/
+output/
+logs/
+*.log
+
+# Local recordings and generated audio fixtures
+*.wav
+*.mp3
+*.m4a
+*.flac
+*.ogg
+*.webm
+*.mp4
+
+# Local QC evidence and downloaded transcripts
+tests/downloads/
+tests/live-qc.json
+tests/controls-qc.json
+tests/browser-qc.json
+tests/ui-*.png
+tests/qc_browser.cjs
+
+# Personal handoff and local documentation; README.md is publishable
+*.md
+!README.md
+HANDOFF-CODEX.txt
+HASIL-QC.txt
+PANDUAN.txt
+.review/
+
+# Credentials and editor/OS files
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Manual QC helpers remain local
+tests/qc_*.py

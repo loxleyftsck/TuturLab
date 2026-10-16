@@ -1,0 +1,8 @@
+# Runtime already installed locally. For reinstall, choose the PyTorch CPU distribution.
+qwen-asr==0.0.6
+faster-whisper==1.2.1
+av==16.1.0
+gradio==6.17.3
+torch==2.14.1
+numpy==2.5.4
+soundfile==0.14.0
