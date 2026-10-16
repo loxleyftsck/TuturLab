@@ -50,35 +50,36 @@ Teknologi utama:
 | Penyimpanan hasil | TXT dan JSON lokal |
 | Pengujian | Python `unittest` |
 
-## Cara kerja
+## Arsitektur
 
-```text
-Unggah / rekam audio
-        |
-        v
-Validasi ukuran dan durasi
-        |
-        v
-Decode menjadi audio mono 16 kHz
-        |
-        v
-Potong berurutan hingga 30 detik
-        |
-        v
-Silero VAD: periksa apakah ada ucapan
-        |
-        +-- Hening --> lanjutkan progres tanpa memanggil Qwen
-        |
-        +-- Ucapan --> Qwen3-ASR-0.6B --> teks
-                                         |
-                                         v
-                         Simpan TXT + status JSON per potongan
-                                         |
-                                         v
-                              Tampilkan hasil / unduh TXT
-```
+Diagram berikut dibuat menggunakan **Archify** berdasarkan implementasi Qwen yang tersedia saat ini.
 
-Potongan diproses satu per satu. Aplikasi mencari jeda di dekat batas potongan agar pemotongan lebih masuk akal, tetapi kata yang melewati batas tetap dapat terpotong atau salah dikenali.
+![Arsitektur TuturLab: audio masuk melalui Gradio, diproses oleh PyAV dan Silero VAD, ditranskripsi dengan Qwen3-ASR-0.6B, lalu disimpan dan diunduh sebagai TXT.](assets/tuturlab-architecture.png)
+
+[Buka diagram SVG untuk memperbesar](assets/tuturlab-architecture.svg) · [Unduh PNG](assets/tuturlab-architecture.png)
+
+Gradio dan pipeline pemrosesan berjalan dalam **satu proses Python di komputer pengguna**. Kotak pada diagram menunjukkan komponen logis, bukan server yang terpisah. Penyimpanan menggunakan berkas lokal; tidak ada server database.
+
+| Komponen | Implementasi | Tanggung jawab |
+| --- | --- | --- |
+| Antarmuka dan kontrol pekerjaan | [app.py](app.py) | Unggah/rekam, bahasa, antrean satu pekerjaan aktif, progres, Stop per sesi, dan unduhan. |
+| Decode dan pembagian audio | [offline_asr.py](offline_asr.py) | Validasi ukuran/durasi, konversi mono 16 kHz, serta potongan berurutan hingga 30 detik. |
+| Deteksi ucapan | `detect_speech()` / Silero VAD | Memeriksa ucapan dan melewati inferensi Qwen untuk potongan hening. |
+| Model ASR | `recognize()` / Qwen3-ASR-0.6B | Mengubah audio yang berisi ucapan menjadi teks pada CPU `float32`. |
+| Penyimpanan hasil | `process_audio()` / `write_atomic()` | Menulis `transcript.txt` dan `status.json` setiap potongan selesai. |
+| Bobot dan data runtime | `models/`, `cache/`, `output/`, `logs/` | Berkas lokal yang tidak disertakan di repository. |
+
+### Alur pemrosesan
+
+1. Pengguna mengunggah atau merekam audio, lalu memilih bahasa di Gradio.
+2. Audio dibaca sebagai mono 16 kHz dan diperiksa terhadap batas 15 menit / 200 MiB, lalu dibagi berurutan hingga 30 detik per potongan.
+3. Silero VAD memeriksa setiap potongan. Potongan hening tidak memanggil Qwen, tetapi tetap memperbarui progres.
+4. Potongan berisi ucapan ditranskripsi oleh Qwen. Teks digabung dan berkas hasil ditulis secara atomik.
+5. Generator Gradio mengirim teks serta progres langsung ke antarmuka. Tombol unduh mengambil berkas TXT yang sudah disimpan.
+
+Tombol **Hentikan proses** mengirim sinyal per sesi browser. Model menyelesaikan potongan yang sedang berjalan, menyimpan hasilnya, lalu menghentikan pekerjaan. Batas pemotongan tetap dapat menyebabkan kata terpotong atau salah dikenali.
+
+Inferensi memakai bobot lokal setelah penyiapan awal. Diagram ini menggambarkan versi yang tersedia; pemilih model, Faster-Whisper sebagai ASR pembanding, dan diarization masih belum diimplementasikan.
 
 ## Persyaratan
 
